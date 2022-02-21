@@ -69,9 +69,12 @@ public class Main {
                 Repository.find(args[1]);
                 break;
             case "rm-branch":
-                // TODO: java gitlet.Main rm_branch
                 Repository.rm_branch(args[1]);
                 break;
+            case "merge":
+                Repository.merge(args[1]);
+                break;
+
         }
     }
 }

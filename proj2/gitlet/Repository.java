@@ -1,11 +1,13 @@
 package gitlet;
 
+import javax.swing.*;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeSet;
 
 import static gitlet.Utils.*;
 
@@ -477,6 +479,147 @@ public class Repository {
 
     }
 
+
+    public static void merge(String branchName){
+        File index = join(GITLET_DIR , "index");
+        Index stage = readObject(index , Index.class);
+        File head = join(GITLET_DIR, "HEAD");
+        File headbranch = new File(Utils.readContentsAsString(head));
+        String curBranchName = headbranch.getName();
+        /*======================check Failure cases=================*/
+        if(curBranchName.equals(branchName)){
+            System.out.println("Cannot merge a branch with itself.");
+            System.exit(0);
+        }
+        if(!stage.isEmpty()){
+            System.out.println("You have uncommitted changes.");
+            System.exit(0);
+        }
+        Commit curBranch = getHeadCommit();
+        File branch = join(GITLET_DIR , "refs" , "heads",branchName);
+        if(!branch.exists()){
+            System.out.println("A branch with that name does not exist.");
+            System.exit(0);
+        }
+        for (String s : Utils.plainFilenamesIn(CWD)) {
+            if (!curBranch.containBlob(s) && !stage.isStaged(s)) {
+                System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
+                System.exit(0);
+            }
+        }
+        /*=============================================================*/
+
+
+        Commit givenBranch = readObject(searchObject(Utils.readContentsAsString(branch)) , Commit.class);
+        Commit splitCommit = findSplit(curBranch , givenBranch);
+        String curSha = sha1(Utils.serialize(curBranch));
+        String givenSha = sha1(Utils.serialize(givenBranch));
+        String splitSha = sha1(Utils.serialize(splitCommit));
+        if(splitSha.equals(givenSha)){
+            return;
+        }else if(splitSha.equals(curSha)){
+            checkout3(branchName);
+        }
+
+        TreeSet<String> fileSet = new TreeSet<>();
+        for(String s : curBranch.getBlobs().keySet()){
+            fileSet.add(s);
+        }
+        for(String s : givenBranch.getBlobs().keySet()){
+            fileSet.add(s);
+        }
+        for(String s : splitCommit.getBlobs().keySet()){
+            fileSet.add(s);
+        }
+
+        for(String s : fileSet){
+            if(splitCommit.containBlob(s) && curBranch.containBlob(s)){
+                if(splitCommit.getFilesha(s).equals(curBranch.getFilesha(s))){
+                    if(givenBranch.containBlob(s)){
+                        stage.addFile(s , searchObject(givenBranch.getFilesha(s)));
+                    }else{
+                        stage.removeFile(s);
+                    }
+                }else if(givenBranch.containBlob(s) && !splitCommit.getFilesha(s).equals(givenBranch.getFilesha(s))){
+                    if(!givenBranch.getFilesha(s).equals(curBranch.getFilesha(s))){
+                        //conflict;
+                        //<<<<<<< HEAD
+                        //contents of file in current branch
+                        //=======
+                        //contents of file in given branch
+                        //>>>>>>>
+                        String newString = "<<<<<<< HEAD\n";
+                        newString += readContentsAsString(searchObject(curBranch.getFilesha(s))) +"\n";
+                        newString +="=======\n";
+                        newString += readContentsAsString(searchObject(givenBranch.getFilesha(s))) + "\n";
+                        newString += ">>>>>>>";
+                        File file = join(CWD , s);
+                        stage.addFile(s , file);
+                    }
+                }
+            }else if(!splitCommit.containBlob(s) && !curBranch.containBlob(s)){
+                stage.removeFile(s);
+            }
+        }
+
+        //merge COmmit
+
+        if (stage.isEmpty()) {
+            System.out.println("No changes added to the commit.");
+            System.exit(0);
+        }
+        Commit newcommit = new Commit(curSha , givenSha , curBranchName , branchName);
+        //handle stage for addition
+        for (String add : stage.getAddStage().keySet()) {
+            String file = stage.getAddStage().get(add);
+            String sha = saveByteOrString(file);
+            newcommit.addFile(add, sha);
+        }
+        //handle stage for removal
+        for (String removal : stage.getRemoveStage()) {
+            newcommit.removeFile(removal);
+        }
+        //clear current index and save
+        stage.clear();
+        Utils.writeObject(index, stage);
+        //save commit
+        String newCommitsha = saveObject(newcommit);
+        //move branch
+
+        Utils.writeContents(headbranch, newCommitsha);
+
+    }
+
+    /***
+     * find a SplitCommit for curBranch
+     * @param curBranch
+     * @param givenBranch
+     * @return
+     */
+    public static Commit findSplit(Commit curBranch , Commit givenBranch){
+        Map<String , Boolean > map = new HashMap<>();
+        Commit point = curBranch;
+        while (true) {
+            map.put(sha1(serialize(point)) , Boolean.TRUE);
+            if (point.getParent() == null) {
+                break;
+            } else {
+                point = Utils.readObject(searchObject(point.getParent()), Commit.class);
+            }
+        }
+        point = givenBranch;
+        while (true) {
+            if(map.containsKey(sha1(serialize(point)))){
+                break;
+            }
+            if (point.getParent() == null) {
+                break;
+            } else {
+                point = Utils.readObject(searchObject(point.getParent()), Commit.class);
+            }
+        }
+        return point;
+    }
     /***
      * check whether a file is tracked by current commit
      * @param filename

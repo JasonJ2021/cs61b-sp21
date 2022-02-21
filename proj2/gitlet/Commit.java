@@ -3,7 +3,6 @@ package gitlet;
 // TODO: any imports you need here
 
 
-
 import java.io.Serializable;
 import java.text.SimpleDateFormat;
 import java.util.Date; // TODO: You'll likely use this in this class
@@ -33,12 +32,24 @@ public class Commit implements Serializable {
     private Date date;
     private TreeMap<String, String> blobs; //filename : filesha
     private String parent; //Parent commit 's SHA-1 code ;
+    private String otherParent;
 
-    /* TODO: fill in the rest of this class. */
     public Commit(String message) {
         Commit head = Repository.getHeadCommit();
         this.message = message;
         this.parent = Utils.sha1(Utils.serialize(head));
+        blobs = new TreeMap<>();
+        blobs.putAll(head.blobs);
+        this.date = new Date();
+    }
+
+    //Create mergeCommit ,
+    public Commit(String parentSha, String otherParentSha, String givenBName, String curBName) {
+        //Merged [given branch name] into [current branch name].
+        Commit head = Repository.getHeadCommit();
+        this.message = "Merged " + givenBName + " into " + curBName + ".";
+        this.parent = parentSha;
+        this.otherParent = otherParentSha;
         blobs = new TreeMap<>();
         blobs.putAll(head.blobs);
         this.date = new Date();
@@ -50,9 +61,11 @@ public class Commit implements Serializable {
         this.blobs = new TreeMap<>();
         this.parent = null;
     }
-    public String getParent(){
+
+    public String getParent() {
         return parent;
     }
+
     public String getDate() {
         String strDateFormat = "EEE MMM d HH:mm:ss yyyy Z";
         SimpleDateFormat sdf = new SimpleDateFormat(strDateFormat);
@@ -73,19 +86,24 @@ public class Commit implements Serializable {
         }
         return blobs.get(filename).equals(sha);
     }
-    public TreeMap<String , String > getBlobs(){
+
+    public TreeMap<String, String> getBlobs() {
         return this.blobs;
     }
-    public void addFile(String filename , String sha){
-        blobs.put(filename , sha);
+
+    public void addFile(String filename, String sha) {
+        blobs.put(filename, sha);
     }
-    public void removeFile(String filename){
+
+    public void removeFile(String filename) {
         blobs.remove(filename);
     }
-    public boolean fileTracked(String filename){
+
+    public boolean fileTracked(String filename) {
         return blobs.containsKey(filename);
     }
-    public String getFilesha(String filename){
+
+    public String getFilesha(String filename) {
         return this.blobs.get(filename);
     }
 }
