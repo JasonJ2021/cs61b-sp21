@@ -73,6 +73,9 @@ public class Commit implements Serializable {
         }
         return blobs.get(filename).equals(sha);
     }
+    public TreeMap<String , String > getBlobs(){
+        return this.blobs;
+    }
     public void addFile(String filename , String sha){
         blobs.put(filename , sha);
     }

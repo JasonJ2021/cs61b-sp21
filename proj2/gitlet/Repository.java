@@ -3,7 +3,9 @@ package gitlet;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static gitlet.Utils.*;
 
@@ -178,6 +180,34 @@ public class Repository {
         }
     }
 
+    public static void global_log() {
+
+        File heads = join(GITLET_DIR, "refs", "heads");
+        Map<String, Boolean> map = new HashMap<>();
+        for (String branch : Utils.plainFilenamesIn(heads)) {
+            File branchHead = join(heads, branch);
+            String commitSha = Utils.readContentsAsString(branchHead);
+            Commit point = readObject(searchObject(commitSha), Commit.class);
+            while (true) {
+                System.out.println("===");
+                commitSha = sha1(Utils.serialize(point));
+                map.put(commitSha, Boolean.TRUE);
+                System.out.println("commit " + commitSha);
+                System.out.println("Date: " + point.getDate());
+                System.out.println(point.getMessage());
+                System.out.println();
+                if (point.getParent() == null || map.containsKey(point.getParent())) {
+                    break;
+                } else {
+                    point = Utils.readObject(searchObject(point.getParent()), Commit.class);
+                }
+            }
+        }
+
+
+    }
+
+
     /***
      * Usage: java gitlet.Main checkout -- [file name]
      * Takes the version of the file as it exists in the head commit and puts it in the working directory,
@@ -218,6 +248,179 @@ public class Repository {
     }
 
     /***
+     * Takes all files in the commit at the head of the given branch,
+     * and puts them in the working directory,
+     * overwriting the versions of the files that are already there if they exist.
+     * Also, at the end of this command, the given branch will now be considered the current branch (HEAD).
+     * Any files that are tracked in the current branch but are not present in the checked-out branch are deleted.
+     * The staging area is cleared, unless the checked-out branch is the current branch (see Failure cases below).
+     * @param branchName
+     */
+    public static void checkout3(String branchName) {
+        File heads = join(GITLET_DIR, "refs", "heads");
+        List<String> headlist = plainFilenamesIn(heads);
+        //If no branch with that name exists, print No such branch exists.
+        if (!headlist.contains(branchName)) {
+            System.out.println("No such branch exists.");
+            System.exit(0);
+        }
+        File head = join(GITLET_DIR, "HEAD");
+        File headbranch = new File(Utils.readContentsAsString(head));
+        Commit currentHeadCommit = Utils.readObject(searchObject(Utils.readContentsAsString(headbranch)), Commit.class);
+        //If that branch is the current branch, print No need to checkout the current branch.
+        if (branchName.equals(headbranch.getName())) {
+            System.out.println("No need to checkout the current branch.");
+            System.exit(0);
+        }
+
+        //If a working file is untracked in the current branch and would be overwritten by the checkout,
+        // print There is an untracked file in the way; delete it, or add and commit it first.
+        File newheadbranch = join(heads, branchName);
+        String commitSha = Utils.readContentsAsString(newheadbranch);
+        Commit newheadCommit = Utils.readObject(searchObject(commitSha), Commit.class);
+        for (String s : Utils.plainFilenamesIn(CWD)) {
+            if (!currentHeadCommit.fileTracked(s) && !newheadCommit.isSameBlob(s, getFileSha(join(CWD, s)))){
+                System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
+                System.exit(0);
+            }
+        }
+
+        //delete current CWD
+        for (String s : Utils.plainFilenamesIn(CWD)) {
+            Utils.restrictedDelete(join(CWD , s));
+        }
+
+        //retrive file in newHeadCommit
+        for(String s : newheadCommit.getBlobs().keySet()){
+            checkout2(commitSha , s);
+        }
+
+        //write back to Head
+        Utils.writeContents(head, newheadbranch.getAbsolutePath());
+    }
+
+    /***
+     * Creates a new branch with the given name,
+     * and points it at the current head commit.
+     * A branch is nothing more than a name for a reference (a SHA-1 identifier) to a commit node.
+     * This command does NOT immediately switch to the newly created branch (just as in real Git).
+     * Before you ever call branch, your code should be running with a default branch called “master”.
+     * @param branchName
+     */
+    public static void branch(String branchName) {
+        String headCommitSha = getHeadCommitSha();
+        File refs = join(GITLET_DIR, "refs", "heads", branchName);
+        if (refs.exists()) {
+            throw new GitletException("A branch with that name already exists.");
+        }
+        try {
+            refs.createNewFile();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        Utils.writeContents(refs, headCommitSha);
+    }
+
+    /***
+     * Displays what branches currently exist, and marks the current branch with a *.
+     * Also displays what files have been staged for addition or removal.
+     * An example of the exact format it should follow is as follows.
+     * === Branches ===
+     * *master
+     * other-branch
+     *
+     * === Staged Files ===
+     * wug.txt
+     * wug2.txt
+     *
+     * === Removed Files ===
+     * goodbye.txt
+     *
+     * === Modifications Not Staged For Commit ===
+     * junk.txt (deleted)
+     * wug3.txt (modified)
+     *
+     * === Untracked Files ===
+     * random.stuff
+     */
+    public static void status() {
+        //print all branch
+        File head = join(GITLET_DIR, "HEAD");
+        File branch = new File(Utils.readContentsAsString(head));
+        String commit = Utils.readContentsAsString(branch);
+        Commit headCommit = Utils.readObject(searchObject(commit), Commit.class);
+
+        String headBranchName = branch.getName();
+        File heads = join(GITLET_DIR, "refs", "heads");
+        System.out.println("=== Branches ===");
+        System.out.println("*" + headBranchName);
+        for (String s : Utils.plainFilenamesIn(heads)) {
+            if (s.equals(headBranchName)) {
+                continue;
+            }
+            System.out.println(s);
+        }
+        System.out.println();
+
+        //print Staged Files
+        File index = join(GITLET_DIR, "index");
+        Index stage = Utils.readObject(index, Index.class);
+        System.out.println("=== Staged Files ===");
+        for (String s : stage.getAddStage().keySet()) {
+            System.out.println(s);
+        }
+        System.out.println();
+
+        //print Removed Files
+        System.out.println("=== Removed Files ===");
+        for (String s : stage.getRemoveStage()) {
+            System.out.println(s);
+        }
+        System.out.println();
+
+        //print Modifications Not Staged For Commit
+        /*A file in the working directory is “modified but not staged”
+        if it is one of the following cases
+        * Tracked in the current commit, changed in the working directory, but not staged
+        * Staged for addition, but with different contents than in the working directory
+        * Staged for addition, but deleted in the working directory
+        * Not staged for removal, but tracked in the current commit and deleted from the working directory
+        * */
+
+        System.out.println("=== Modifications Not Staged For Commit ===");
+        List<String> strings = plainFilenamesIn(CWD);
+        for (String s : strings) {
+            File file = join(CWD, s);
+            String fileSha = getFileSha(file);
+            if (isTracked(s) && !headCommit.isSameBlob(s, fileSha) && !stage.isStaged(s)) {
+                System.out.println(s + " (modified)");
+            } else if (stage.isOnAddStage(s) && !fileSha.equals(Utils.sha1(stage.getFile(s)))) {
+                System.out.println(s + " (modified)");
+            }
+        }
+        for (String s : stage.getAddStage().keySet()) {
+            if (!strings.contains(s)) {
+                System.out.println(s + " (deleted)");
+            }
+        }
+        for (String s : headCommit.getBlobs().keySet()) {
+            if (!strings.contains(s) && !stage.isOnRemoveStage(s)) {
+                System.out.println(s + " (deleted)");
+            }
+        }
+        System.out.println();
+
+        System.out.println("=== Untracked Files ===");
+        for (String s : strings) {
+            if (!headCommit.containBlob(s) && !stage.isStaged(s)) {
+                System.out.println(s);
+            }
+        }
+        System.out.println();
+
+    }
+
+    /***
      * check whether a file is tracked by current commit
      * @param filename
      * @return
@@ -225,6 +428,15 @@ public class Repository {
     public static boolean isTracked(String filename) {
         Commit head = getHeadCommit();
         return head.fileTracked(filename);
+    }
+
+    public static String getObjectSha(Serializable object) {
+        return Utils.sha1(serialize(object));
+    }
+
+    public static String getFileSha(File file) {
+        String sha = Utils.sha1(Utils.readContentsAsString(file));
+        return sha;
     }
 
     public static String getHeadCommitSha() {

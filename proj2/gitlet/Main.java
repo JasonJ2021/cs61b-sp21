@@ -41,11 +41,28 @@ public class Main {
                 Repository.log();
                 break;
             case "checkout":
+                // TODO: checkout With branch hasn't finished yet!
                 if (args.length == 3) {
+                    //java gitlet.Main checkout -- [file name]
                     Repository.checkout1(args[2]);
                 } else if (args.length == 4) {
+                    //java gitlet.Main checkout [commit id] -- [file name]
                     Repository.checkout2(args[1], args[3]);
+                }else{
+                    //java gitlet.Main checkout [branch name]
+                    Repository.checkout3(args[1]);
                 }
+                break;
+            case "branch":
+                Repository.branch(args[1]);
+                break;
+            case "status":
+                // TODO: java gitlet.Main status
+                Repository.status();
+                break;
+            case "global-log":
+                // TODO: java gitlet.Main status
+                Repository.global_log();
                 break;
         }
     }

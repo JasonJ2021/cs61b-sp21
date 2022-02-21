@@ -48,6 +48,18 @@ public class Index implements Serializable {
         }
         return flag;
     }
+    public boolean isStaged(String filename){
+        return addStage.containsKey(filename) || removeStage.contains(filename);
+    }
+    public boolean isOnAddStage(String filename){
+        return addStage.containsKey(filename);
+    }
+    public boolean isOnRemoveStage(String filename){
+        return removeStage.contains(filename);
+    }
+    public String getFile(String s){
+        return addStage.get(s);
+    }
     public void removeFile(String filename) {
         removeStage.add(filename);
     }
