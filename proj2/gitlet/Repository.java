@@ -189,14 +189,17 @@ public class Repository {
             String commitSha = Utils.readContentsAsString(branchHead);
             Commit point = readObject(searchObject(commitSha), Commit.class);
             while (true) {
-                System.out.println("===");
                 commitSha = sha1(Utils.serialize(point));
+                if (map.containsKey(commitSha)) {
+                    break;
+                }
+                System.out.println("===");
                 map.put(commitSha, Boolean.TRUE);
                 System.out.println("commit " + commitSha);
                 System.out.println("Date: " + point.getDate());
                 System.out.println(point.getMessage());
                 System.out.println();
-                if (point.getParent() == null || map.containsKey(point.getParent())) {
+                if (point.getParent() == null) {
                     break;
                 } else {
                     point = Utils.readObject(searchObject(point.getParent()), Commit.class);
@@ -279,7 +282,7 @@ public class Repository {
         String commitSha = Utils.readContentsAsString(newheadbranch);
         Commit newheadCommit = Utils.readObject(searchObject(commitSha), Commit.class);
         for (String s : Utils.plainFilenamesIn(CWD)) {
-            if (!currentHeadCommit.fileTracked(s) && !newheadCommit.isSameBlob(s, getFileSha(join(CWD, s)))){
+            if (!currentHeadCommit.fileTracked(s) && !newheadCommit.isSameBlob(s, getFileSha(join(CWD, s)))) {
                 System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
                 System.exit(0);
             }
@@ -287,12 +290,12 @@ public class Repository {
 
         //delete current CWD
         for (String s : Utils.plainFilenamesIn(CWD)) {
-            Utils.restrictedDelete(join(CWD , s));
+            Utils.restrictedDelete(join(CWD, s));
         }
 
         //retrive file in newHeadCommit
-        for(String s : newheadCommit.getBlobs().keySet()){
-            checkout2(commitSha , s);
+        for (String s : newheadCommit.getBlobs().keySet()) {
+            checkout2(commitSha, s);
         }
 
         //write back to Head
@@ -418,6 +421,31 @@ public class Repository {
         }
         System.out.println();
 
+    }
+
+
+    public static void find(String message) {
+        File heads = join(GITLET_DIR, "refs", "heads");
+        Map<String, Boolean> map = new HashMap<>();
+        for (String branch : Utils.plainFilenamesIn(heads)) {
+            File branchHead = join(heads, branch);
+            String commitSha = Utils.readContentsAsString(branchHead);
+            Commit point = readObject(searchObject(commitSha), Commit.class);
+            while (true) {
+                commitSha = sha1(Utils.serialize(point));
+                if (map.containsKey(commitSha)) {
+                    break;
+                }
+                if(point.getMessage().equals(message)){
+                    System.out.println(commitSha);
+                }
+                if (point.getParent() == null) {
+                    break;
+                } else {
+                    point = Utils.readObject(searchObject(point.getParent()), Commit.class);
+                }
+            }
+        }
     }
 
     /***

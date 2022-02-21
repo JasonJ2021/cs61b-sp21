@@ -64,6 +64,10 @@ public class Main {
                 // TODO: java gitlet.Main status
                 Repository.global_log();
                 break;
+            case "find":
+                // TODO: java gitlet.Main status
+                Repository.find(args[1]);
+                break;
         }
     }
 }
