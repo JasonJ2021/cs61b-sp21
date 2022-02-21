@@ -26,7 +26,7 @@ public class Index implements Serializable {
     * */
     public void addFile(String filename , File file) {
         Commit headCommit = Repository.getHeadCommit();
-        if(headCommit.isSameBlob(filename , Utils.sha1(Utils.serialize(file)))){
+        if(headCommit.isSameBlob(filename , Repository.getFileSha(file))){
             if(addStage.containsKey(filename)){
                 addStage.remove(filename);
             }

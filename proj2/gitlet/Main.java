@@ -61,12 +61,16 @@ public class Main {
                 Repository.status();
                 break;
             case "global-log":
-                // TODO: java gitlet.Main status
+
                 Repository.global_log();
                 break;
             case "find":
-                // TODO: java gitlet.Main status
+
                 Repository.find(args[1]);
+                break;
+            case "rm-branch":
+                // TODO: java gitlet.Main rm_branch
+                Repository.rm_branch(args[1]);
                 break;
         }
     }

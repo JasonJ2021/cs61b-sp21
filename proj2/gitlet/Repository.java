@@ -455,6 +455,29 @@ public class Repository {
     }
 
     /***
+     * Deletes the branch with the given name.
+     * This only means to delete the pointer associated with the branch;
+     * it does not mean to delete all commits that were created under the branch, or anything like that.
+     * @param branchName
+     */
+    public static void rm_branch(String branchName){
+        File head = join(GITLET_DIR, "HEAD");
+        File head_branch = new File(Utils.readContentsAsString(head));
+        if(head_branch.getName().equals(branchName)){
+            throw new GitletException("Cannot remove the current branch.");
+        }
+        File branch = join(GITLET_DIR , "refs" , "heads" , branchName);
+        if(!branch.exists()){
+            throw new GitletException("A branch with that name does not exist.");
+        }
+        branch.delete();
+//        String rm_commit_sha = Utils.readContentsAsString(branch);
+//        Commit rm_commit = Utils.readObject(searchObject(rm_commit_sha) , Commit.class);
+//        String parent_commit = rm_commit.getParent();
+
+    }
+
+    /***
      * check whether a file is tracked by current commit
      * @param filename
      * @return
