@@ -298,6 +298,12 @@ public class Repository {
             checkout2(commitSha, s);
         }
 
+        //clear the stage
+        File index = join(GITLET_DIR , "index");
+        Index stage = Utils.readObject(index , Index.class);
+        stage.clear();
+        Utils.writeObject(index , stage);
+        
         //write back to Head
         Utils.writeContents(head, newheadbranch.getAbsolutePath());
     }

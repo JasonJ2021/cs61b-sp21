@@ -30,6 +30,10 @@ public class Index implements Serializable {
             if(addStage.containsKey(filename)){
                 addStage.remove(filename);
             }
+            //
+            if(removeStage.contains(filename)){
+                removeStage.remove(filename);
+            }
             return;
         }
         addStage.put(filename, Utils.readContentsAsString(file));
