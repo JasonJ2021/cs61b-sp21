@@ -16,7 +16,6 @@ public class Main {
     public static void main(String[] args) {
         // TODO: what if args is empty?
         String firstArg = args[0];
-        Repository.initYet();
         switch (firstArg) {
             case "init":
                 // TODO: handle the `init` command

@@ -97,6 +97,7 @@ public class Repository {
     }
 
     public static void add(String filename) {
+        initYet();
         File file = join(CWD, filename);
         if (!file.exists()) {
             System.out.println("File does not exist.");
@@ -114,6 +115,7 @@ public class Repository {
      * Of course, the date (and likely the mesage) will also different from the parent.
      */
     public static void commit(String message) {
+        initYet();
         if (message == "") {
             System.out.println("Please enter a commit message.");
             System.exit(0);
@@ -153,6 +155,7 @@ public class Repository {
      * if the user has not already done so (do not remove it unless it is tracked in the current commit).
      */
     public static void rm(String filename) {
+        initYet();
         File index = join(GITLET_DIR, "index");
         Index stage = readObject(index, Index.class);
         //unstage the file
@@ -178,6 +181,7 @@ public class Repository {
      */
     public static void log() {
         Commit point = getHeadCommit();
+        initYet();
         while (true) {
             System.out.println("===");
             System.out.println("commit " + sha1(Utils.serialize(point)));
@@ -197,7 +201,7 @@ public class Repository {
     }
 
     public static void global_log() {
-
+        initYet();
         File heads = join(GITLET_DIR, "refs", "heads");
         Map<String, Boolean> map = new HashMap<>();
         for (String branch : Utils.plainFilenamesIn(heads)) {
@@ -236,7 +240,7 @@ public class Repository {
      *
      */
     public static void checkout1(String filename) {
-
+        initYet();
         Commit head = getHeadCommit();
         if (!head.containBlob(filename)) {
             System.out.println("File does not exist in that commit.");
@@ -257,6 +261,7 @@ public class Repository {
      * @param filename
      */
     public static void checkout2(String commitId, String filename) {
+        initYet();
         Commit head = Utils.readObject(searchWithPre(commitId), Commit.class);
         if (!head.containBlob(filename)) {
             System.out.println("File does not exist in that commit.");
@@ -278,6 +283,7 @@ public class Repository {
      * @param branchName
      */
     public static void checkout3(String branchName) {
+        initYet();
         File heads = join(GITLET_DIR, "refs", "heads");
         List<String> headlist = plainFilenamesIn(heads);
         //If no branch with that name exists, print No such branch exists.
@@ -335,6 +341,7 @@ public class Repository {
      * @param branchName
      */
     public static void branch(String branchName) {
+        initYet();
         String headCommitSha = getHeadCommitSha();
         File refs = join(GITLET_DIR, "refs", "heads", branchName);
         if (refs.exists()) {
@@ -372,6 +379,7 @@ public class Repository {
      * random.stuff
      */
     public static void status() {
+        initYet();
         //print all branch
         File head = join(GITLET_DIR, "HEAD");
         File branch = new File(Utils.readContentsAsString(head));
@@ -450,6 +458,7 @@ public class Repository {
 
 
     public static void find(String message) {
+        initYet();
         File heads = join(GITLET_DIR, "refs", "heads");
         Map<String, Boolean> map = new HashMap<>();
         boolean flag = false;
@@ -484,6 +493,7 @@ public class Repository {
      * @param branchName
      */
     public static void rm_branch(String branchName) {
+        initYet();
         File head = join(GITLET_DIR, "HEAD");
         File head_branch = new File(Utils.readContentsAsString(head));
         if (head_branch.getName().equals(branchName)) {
@@ -504,6 +514,7 @@ public class Repository {
 
 
     public static void merge(String branchName) {
+        initYet();
         File index = join(GITLET_DIR, "index");
         Index stage = readObject(index, Index.class); // get stage
         File head = join(GITLET_DIR, "HEAD");
@@ -673,6 +684,7 @@ public class Repository {
     }
 
     public static void reset(String commitSha){
+        initYet();
         File newCommitFile = searchWithPre(commitSha);
         File index = join(GITLET_DIR , "index");
         Index stage = readObject(index , Index.class);
