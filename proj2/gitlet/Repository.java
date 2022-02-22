@@ -580,6 +580,11 @@ public class Repository {
         boolean flag = false;
         for (String s : fileSet) {
             //Split : exist  , Cur: exist
+            if(splitCommit.containBlob(s) && curBranch.containBlob(s) && !givenBranch.containBlob(s)){
+                if(!splitCommit.getFilesha(s).equals(curBranch.getFilesha(s))){
+                    System.out.println("Encountered a merge conflict.");
+                }
+            }
             if (splitCommit.containBlob(s) && curBranch.containBlob(s)) {
                 //Split : A  , Cur : A
                 if (splitCommit.getFilesha(s).equals(curBranch.getFilesha(s))) {
