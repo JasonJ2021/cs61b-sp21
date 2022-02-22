@@ -591,9 +591,17 @@ public class Repository {
         String newCommitsha = saveObject(newcommit);
         //move branch
         Utils.writeContents(headbranch, newCommitsha);
-        checkout3(curBranchName);
-    }
+        //delete current CWD
+        for (String s : Utils.plainFilenamesIn(CWD)) {
+            Utils.restrictedDelete(join(CWD, s));
+        }
 
+        //retrive file in newHeadCommit
+        for (String s : newcommit.getBlobs().keySet()) {
+            checkout2(newCommitsha, s);
+        }
+
+    }
     /***
      * find a SplitCommit for curBranch
      * @param curBranch
