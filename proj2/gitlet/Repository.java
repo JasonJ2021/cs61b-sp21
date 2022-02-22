@@ -585,6 +585,12 @@ public class Repository {
                     System.out.println("Encountered a merge conflict.");
                 }
             }
+            if(splitCommit.containBlob(s) && !curBranch.containBlob(s) && givenBranch.containBlob(s)){
+                if(!splitCommit.getFilesha(s).equals(givenBranch.getFilesha(s))){
+                    System.out.println("Encountered a merge conflict.");
+                    stage.addFile(s, searchObject(givenBranch.getFilesha(s)));
+                }
+            }
             if (splitCommit.containBlob(s) && curBranch.containBlob(s)) {
                 //Split : A  , Cur : A
                 if (splitCommit.getFilesha(s).equals(curBranch.getFilesha(s))) {
