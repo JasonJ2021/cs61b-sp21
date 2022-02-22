@@ -33,6 +33,7 @@ public class Commit implements Serializable {
     private TreeMap<String, String> blobs; //filename : filesha
     private String parent; //Parent commit 's SHA-1 code ;
     private String otherParent;
+    private boolean hasOtherParent;
 
     public Commit(String message) {
         Commit head = Repository.getHeadCommit();
@@ -42,7 +43,9 @@ public class Commit implements Serializable {
         blobs.putAll(head.blobs);
         this.date = new Date();
     }
-
+    public String getOtherParent(){
+        return otherParent;
+    }
     //Create mergeCommit ,
     public Commit(String parentSha, String otherParentSha, String givenBName, String curBName) {
         //Merged [given branch name] into [current branch name].

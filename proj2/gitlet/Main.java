@@ -16,6 +16,7 @@ public class Main {
     public static void main(String[] args) {
         // TODO: what if args is empty?
         String firstArg = args[0];
+        Repository.initYet();
         switch (firstArg) {
             case "init":
                 // TODO: handle the `init` command
@@ -47,6 +48,10 @@ public class Main {
                     Repository.checkout1(args[2]);
                 } else if (args.length == 4) {
                     //java gitlet.Main checkout [commit id] -- [file name]
+                    if(!args[2].equals("--")){
+                        System.out.println("Incorrect operands.");
+                        System.exit(0);
+                    }
                     Repository.checkout2(args[1], args[3]);
                 }else{
                     //java gitlet.Main checkout [branch name]
@@ -74,7 +79,13 @@ public class Main {
             case "merge":
                 Repository.merge(args[1]);
                 break;
-
+            case "reset":
+                //java gitlet.Main reset [commit id]
+                Repository.reset(args[1]);
+                break;
+            default:
+                System.out.println("No command with that name exists.");
+                System.exit(0);
         }
     }
 }

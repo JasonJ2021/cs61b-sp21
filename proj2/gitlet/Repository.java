@@ -40,9 +40,16 @@ public class Repository {
     /*The stage area file*/
 
     /* TODO: fill in the rest of this class. */
+    public static void initYet(){
+        if(!GITLET_DIR.exists()){
+            System.out.println("Not in an initialized Gitlet directory.");
+            System.exit(0);
+        }
+    }
     public static void init() {
         if (GITLET_DIR.exists()) {
-            throw new GitletException("A Gitlet version-control system already exists in the current directory.");
+            System.out.println("A Gitlet version-control system already exists in the current directory.");
+            System.exit(0);
         }
         GITLET_DIR.mkdir();
         File head = join(GITLET_DIR, "HEAD");
@@ -92,7 +99,8 @@ public class Repository {
     public static void add(String filename) {
         File file = join(CWD, filename);
         if (!file.exists()) {
-            throw new GitletException("File does not exist.");
+            System.out.println("File does not exist.");
+            System.exit(0);
         }
         File index = join(GITLET_DIR, "index");
         Index stage = readObject(index, Index.class);
@@ -106,8 +114,9 @@ public class Repository {
      * Of course, the date (and likely the mesage) will also different from the parent.
      */
     public static void commit(String message) {
-        if (message == null) {
-            throw new GitletException("Please enter a commit message.");
+        if (message == "") {
+            System.out.println("Please enter a commit message.");
+            System.exit(0);
         }
         File index = join(GITLET_DIR, "index");
         Index stage = readObject(index, Index.class);
@@ -157,7 +166,8 @@ public class Repository {
         //save index
         Utils.writeObject(index, stage);
         if (flag == false) {
-            throw new GitletException("No reason to remove the file.");
+            System.out.println("File does not exist.");
+            System.exit(0);
         }
     }
 
@@ -171,6 +181,10 @@ public class Repository {
         while (true) {
             System.out.println("===");
             System.out.println("commit " + sha1(Utils.serialize(point)));
+            if (point.getOtherParent() != null) {
+                //Merge: 4975af1 2c1ead1
+                System.out.println("Merge: " + point.getParent().substring(0, 7) + " " + point.getOtherParent().substring(0, 7));
+            }
             System.out.println("Date: " + point.getDate());
             System.out.println(point.getMessage());
             System.out.println();
@@ -225,7 +239,8 @@ public class Repository {
 
         Commit head = getHeadCommit();
         if (!head.containBlob(filename)) {
-            throw new GitletException("File does not exist in that commit.");
+            System.out.println("File does not exist in that commit.");
+            System.exit(0);
         }
         File file = join(CWD, filename);
         File commitFile = searchObject(head.getFilesha(filename));
@@ -244,7 +259,8 @@ public class Repository {
     public static void checkout2(String commitId, String filename) {
         Commit head = Utils.readObject(searchWithPre(commitId), Commit.class);
         if (!head.containBlob(filename)) {
-            throw new GitletException("File does not exist in that commit.");
+            System.out.println("File does not exist in that commit.");
+            System.exit(0);
         }
         File file = join(CWD, filename);
         File commitFile = searchObject(head.getFilesha(filename));
@@ -322,7 +338,8 @@ public class Repository {
         String headCommitSha = getHeadCommitSha();
         File refs = join(GITLET_DIR, "refs", "heads", branchName);
         if (refs.exists()) {
-            throw new GitletException("A branch with that name already exists.");
+            System.out.println("A branch with that name already exists.");
+            System.exit(0);
         }
         try {
             refs.createNewFile();
@@ -435,6 +452,7 @@ public class Repository {
     public static void find(String message) {
         File heads = join(GITLET_DIR, "refs", "heads");
         Map<String, Boolean> map = new HashMap<>();
+        boolean flag = false;
         for (String branch : Utils.plainFilenamesIn(heads)) {
             File branchHead = join(heads, branch);
             String commitSha = Utils.readContentsAsString(branchHead);
@@ -445,6 +463,7 @@ public class Repository {
                     break;
                 }
                 if (point.getMessage().equals(message)) {
+                    flag = true;
                     System.out.println(commitSha);
                 }
                 if (point.getParent() == null) {
@@ -454,6 +473,8 @@ public class Repository {
                 }
             }
         }
+        System.out.println("Found no commit with that message.");
+        System.exit(0);
     }
 
     /***
@@ -466,11 +487,13 @@ public class Repository {
         File head = join(GITLET_DIR, "HEAD");
         File head_branch = new File(Utils.readContentsAsString(head));
         if (head_branch.getName().equals(branchName)) {
-            throw new GitletException("Cannot remove the current branch.");
+            System.out.println("Cannot remove the current branch.");
+            System.exit(0);
         }
         File branch = join(GITLET_DIR, "refs", "heads", branchName);
         if (!branch.exists()) {
-            throw new GitletException("A branch with that name does not exist.");
+            System.out.println("A branch with that name does not exist.");
+            System.exit(0);
         }
         branch.delete();
 //        String rm_commit_sha = Utils.readContentsAsString(branch);
@@ -521,7 +544,7 @@ public class Repository {
         } else if (splitSha.equals(curSha)) {
             checkout3(branchName);
             Utils.writeContents(headbranch, givenSha);
-            Utils.writeContents(head , headbranch.getAbsolutePath());
+            Utils.writeContents(head, headbranch.getAbsolutePath());
             System.out.println("Current branch fast-forwarded.");
             System.exit(0);
         }
@@ -536,7 +559,7 @@ public class Repository {
         for (String s : splitCommit.getBlobs().keySet()) {
             fileSet.add(s);
         }
-
+        boolean flag = false;
         for (String s : fileSet) {
             if (splitCommit.containBlob(s) && curBranch.containBlob(s)) {
                 if (splitCommit.getFilesha(s).equals(curBranch.getFilesha(s))) {
@@ -554,22 +577,68 @@ public class Repository {
                         //contents of file in given branch
                         //>>>>>>>
                         String newString = "<<<<<<< HEAD\n";
-                        newString += readContentsAsString(searchObject(curBranch.getFilesha(s))) + "\n";
+                        newString += readContentsAsString(searchObject(curBranch.getFilesha(s)));
                         newString += "=======\n";
-                        newString += readContentsAsString(searchObject(givenBranch.getFilesha(s))) + "\n";
-                        newString += ">>>>>>>";
+                        newString += readContentsAsString(searchObject(givenBranch.getFilesha(s)));
+                        newString += ">>>>>>>\n";
                         File file = join(CWD, s);
+                        writeContents(file, newString);
                         stage.addFile(s, file);
+                        if(flag == false){
+                            System.out.println("Encountered a merge conflict.");
+                            flag = true;
+                        }
+                    }
+                } else if (!givenBranch.containBlob(s)) {
+                    if(flag == false){
+                        System.out.println("Encountered a merge conflict.");
+                        flag = true;
                     }
                 }
             } else if (!splitCommit.containBlob(s) && !curBranch.containBlob(s)) {
                 stage.addFile(s, searchObject(givenBranch.getFilesha(s)));
+            } else if (!splitCommit.containBlob(s) && splitCommit.containBlob(s) && curBranch.containBlob(s) && givenBranch.getFilesha(s).equals(curBranch.getFilesha(s))) {
+                //conflict;
+                //<<<<<<< HEAD
+                //contents of file in current branch
+                //=======
+                //contents of file in given branch
+                //>>>>>>>
+                String newString = "<<<<<<< HEAD\n";
+                newString += readContentsAsString(searchObject(curBranch.getFilesha(s)));
+                newString += "=======\n";
+                newString += readContentsAsString(searchObject(givenBranch.getFilesha(s)));
+                newString += ">>>>>>>\n";
+                File file = join(CWD, s);
+                writeContents(file, newString);
+                stage.addFile(s, file);
+                if(flag == false){
+                    System.out.println("Encountered a merge conflict.");
+                    flag = true;
+                }
+            } else if (splitCommit.containBlob(s) && givenBranch.containBlob(s)) {
+                if (!curBranch.containBlob(s) && givenBranch.getFilesha(s).equals(splitCommit.getFilesha(s))) {
+//                    String newString = "";
+//                    newString += readContentsAsString(searchObject(givenBranch.getFilesha(s)));
+//                    File file = join(CWD, s);
+//                    try {
+//                        file.createNewFile();
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                    }
+//                    writeContents(file, newString);
+//                    stage.addFile(s, file);
+                    if(flag == false){
+                        System.out.println("Encountered a merge conflict.");
+                        flag = true;
+                    }
+                }
             }
         }
 
         //merge COmmit
 
-        if (stage.isEmpty()) {
+        if (stage.isEmpty() && flag == false) {
             System.out.println("No changes added to the commit.");
             System.exit(0);
         }
@@ -602,6 +671,43 @@ public class Repository {
         }
 
     }
+
+    public static void reset(String commitSha){
+        File newCommitFile = searchWithPre(commitSha);
+        File index = join(GITLET_DIR , "index");
+        Index stage = readObject(index , Index.class);
+
+        if(!newCommitFile.exists()){
+            System.out.println("No commit with that id exists.");
+            System.exit(0);
+        }
+
+        File head = join(GITLET_DIR, "HEAD");
+        File branch = new File(Utils.readContentsAsString(head));
+        String commit = Utils.readContentsAsString(branch);
+        Commit headCommit = Utils.readObject(searchObject(commit), Commit.class);
+
+        Commit newcommit = readObject(newCommitFile , Commit.class);
+
+        for (String s : Utils.plainFilenamesIn(CWD)) {
+            if (!stage.isOnAddStage(s) && !headCommit.fileTracked(s) && !newcommit.isSameBlob(s, getFileSha(join(CWD, s)))) {
+                System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
+                System.exit(0);
+            }
+        }
+
+        for (String s : Utils.plainFilenamesIn(CWD)) {
+            Utils.restrictedDelete(join(CWD, s));
+        }
+        stage.clear();
+        Utils.writeObject(index , stage);
+        //retrive file in newHeadCommit
+        for (String s : newcommit.getBlobs().keySet()) {
+            checkout2(commitSha, s);
+        }
+        writeContents(branch , commitSha);
+    }
+
     /***
      * find a SplitCommit for curBranch
      * @param curBranch
@@ -669,6 +775,7 @@ public class Repository {
     public static File searchWithPre(String sha) {
         String shaDir = sha.substring(0, 2);
         String prefix = sha.substring(3, sha.length());
+
         File dir = join(GITLET_DIR, "objects", shaDir);
 
         List<String> list = Utils.plainFilenamesIn(dir);
