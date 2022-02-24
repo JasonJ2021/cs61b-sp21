@@ -9,10 +9,11 @@ import java.util.TreeSet;
 public class Index implements Serializable {
     private TreeMap<String, String> addStage;
     private TreeSet<String> removeStage;
-
+    private TreeSet<String> commits;
     public Index() {
         addStage = new TreeMap<>();
         removeStage = new TreeSet<>();
+        commits = new TreeSet<>();
     }
     public TreeMap<String, String > getAddStage(){
         return addStage;
@@ -24,6 +25,12 @@ public class Index implements Serializable {
     * don't stage it , and remove it from the stage area if it's already there
     *
     * */
+    public void addcommit(String commit){
+        commits.add(commit);
+    }
+    public TreeSet<String> getCommits(){
+        return commits;
+    }
     public void addFile(String filename , File file) {
         Commit headCommit = Repository.getHeadCommit();
         if(headCommit.isSameBlob(filename , Repository.getFileSha(file))){

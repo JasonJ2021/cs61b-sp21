@@ -77,14 +77,15 @@ public class Repository {
 
         /*Create stage index*/
         Index stage = new Index();
+        Commit initial = new Commit();
+        String sha1_initialCommit = saveObject(initial);
+        stage.addcommit(sha1_initialCommit);
         Utils.writeObject(index, stage);
 
         /*1.Create initial head
          * 2.put commit object into objects directory
          *
          * */
-        Commit initial = new Commit();
-        String sha1_initialCommit = saveObject(initial);
 
         /*Create Head & master  and point to initial*/
         File master = join(heads, "master");
@@ -93,6 +94,7 @@ public class Repository {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
         Utils.writeContents(master, sha1_initialCommit);
         Utils.writeContents(head, master.getAbsolutePath());
     }
@@ -145,9 +147,10 @@ public class Repository {
         }
         //clear current index and save
         stage.clear();
-        Utils.writeObject(index, stage);
         //save commit
         String newCommitsha = saveObject(newcommit);
+        stage.addcommit(newCommitsha);
+        Utils.writeObject(index, stage);
         //move branch
         File head = join(GITLET_DIR, "HEAD");
         File branch = new File(Utils.readContentsAsString(head));
@@ -207,31 +210,41 @@ public class Repository {
 
     public static void global_log() {
         initYet();
-        File heads = join(GITLET_DIR, "refs", "heads");
-        Map<String, Boolean> map = new HashMap<>();
-        for (String branch : Utils.plainFilenamesIn(heads)) {
-            File branchHead = join(heads, branch);
-            String commitSha = Utils.readContentsAsString(branchHead);
-            Commit point = readObject(searchObject(commitSha), Commit.class);
-            while (true) {
-                commitSha = sha1(Utils.serialize(point));
-                if (map.containsKey(commitSha)) {
-                    break;
-                }
-                System.out.println("===");
-                map.put(commitSha, Boolean.TRUE);
-                System.out.println("commit " + commitSha);
-                System.out.println("Date: " + point.getDate());
-                System.out.println(point.getMessage());
-                System.out.println();
-                if (point.getParent() == null) {
-                    break;
-                } else {
-                    point = Utils.readObject(searchObject(point.getParent()), Commit.class);
-                }
-            }
-        }
+//        File heads = join(GITLET_DIR, "refs", "heads");
+        File index = join(GITLET_DIR , "index");
+        Index stage = readObject(index , Index.class);
 
+//        Map<String, Boolean> map = new HashMap<>();
+//        for (String branch : Utils.plainFilenamesIn(heads)) {
+//            File branchHead = join(heads, branch);
+//            String commitSha = Utils.readContentsAsString(branchHead);
+//            Commit point = readObject(searchObject(commitSha), Commit.class);
+//            while (true) {
+//                commitSha = sha1(Utils.serialize(point));
+//                if (map.containsKey(commitSha)) {
+//                    break;
+//                }
+//                System.out.println("===");
+//                map.put(commitSha, Boolean.TRUE);
+//                System.out.println("commit " + commitSha);
+//                System.out.println("Date: " + point.getDate());
+//                System.out.println(point.getMessage());
+//                System.out.println();
+//                if (point.getParent() == null) {
+//                    break;
+//                } else {
+//                    point = Utils.readObject(searchObject(point.getParent()), Commit.class);
+//                }
+//            }
+//        }
+        for(String s : stage.getCommits()){
+            Commit point = readObject(searchObject(s), Commit.class);
+            System.out.println("===");
+            System.out.println("commit " + s);
+            System.out.println("Date: " + point.getDate());
+            System.out.println(point.getMessage());
+            System.out.println();
+        }
 
     }
 
@@ -464,27 +477,37 @@ public class Repository {
 
     public static void find(String message) {
         initYet();
-        File heads = join(GITLET_DIR, "refs", "heads");
-        Map<String, Boolean> map = new HashMap<>();
+//        File heads = join(GITLET_DIR, "refs", "heads");
+//        Map<String, Boolean> map = new HashMap<>();
+//        boolean flag = false;
+//        for (String branch : Utils.plainFilenamesIn(heads)) {
+//            File branchHead = join(heads, branch);
+//            String commitSha = Utils.readContentsAsString(branchHead);
+//            Commit point = readObject(searchObject(commitSha), Commit.class);
+//            while (true) {
+//                commitSha = sha1(Utils.serialize(point));
+//                if (map.containsKey(commitSha)) {
+//                    break;
+//                }
+//                if (point.getMessage().equals(message)) {
+//                    flag = true;
+//                    System.out.println(commitSha);
+//                }
+//                if (point.getParent() == null) {
+//                    break;
+//                } else {
+//                    point = Utils.readObject(searchObject(point.getParent()), Commit.class);
+//                }
+//            }
+//        }
         boolean flag = false;
-        for (String branch : Utils.plainFilenamesIn(heads)) {
-            File branchHead = join(heads, branch);
-            String commitSha = Utils.readContentsAsString(branchHead);
-            Commit point = readObject(searchObject(commitSha), Commit.class);
-            while (true) {
-                commitSha = sha1(Utils.serialize(point));
-                if (map.containsKey(commitSha)) {
-                    break;
-                }
-                if (point.getMessage().equals(message)) {
+        File index = join(GITLET_DIR , "index");
+        Index stage = readObject(index , Index.class);
+        for(String s : stage.getCommits()){
+            Commit point = readObject(searchObject(s), Commit.class);
+            if (point.getMessage().equals(message)) {
                     flag = true;
-                    System.out.println(commitSha);
-                }
-                if (point.getParent() == null) {
-                    break;
-                } else {
-                    point = Utils.readObject(searchObject(point.getParent()), Commit.class);
-                }
+                    System.out.println(s);
             }
         }
         if (flag == false) {
