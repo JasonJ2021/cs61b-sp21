@@ -1,24 +1,22 @@
 package gitlet;
 
-// TODO: any imports you need here
-
 
 import java.io.Serializable;
 import java.text.SimpleDateFormat;
-import java.util.Date; // TODO: You'll likely use this in this class
+import java.util.Date;
 import java.util.TreeMap;
 
 /**
  * Represents a gitlet commit object.
- *  TODO: It's a good idea to give a description here of what else this Class
- *  does at a high level.
- *  this class contains metadata about one commit  ,
- *  'pointer' to parent commit
+ * <p>
+ * does at a high level.
+ * this class contains metadata about one commit  ,
+ * 'pointer' to parent commit
  * *  @author JasonJ2021
  */
 public class Commit implements Serializable {
     /**
-     * TODO: add instance variables here.
+     *
      *
      * List all instance variables of the Commit class here with a useful
      * comment above them describing what that variable represents and how that
@@ -43,9 +41,11 @@ public class Commit implements Serializable {
         blobs.putAll(head.blobs);
         this.date = new Date();
     }
-    public String getOtherParent(){
+
+    public String getOtherParent() {
         return otherParent;
     }
+
     //Create mergeCommit ,
     public Commit(String parentSha, String otherParentSha, String givenBName, String curBName) {
         //Merged [given branch name] into [current branch name].

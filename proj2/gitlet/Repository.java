@@ -1,28 +1,25 @@
 package gitlet;
 
-import javax.swing.*;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeSet;
+import java.util.*;
 
 import static gitlet.Utils.*;
 
-// TODO: any imports you need here
+//
 
 /**
  * Represents a gitlet repository.
- *  TODO: It's a good idea to give a description here of what else this Class
- *  does at a high level.
+ * <p>
+ * does at a high level.
  *
- * @author TODO
+ * @author JasonJ2021
  */
 public class Repository {
     /**
-     * TODO: add instance variables here.
+     *
      *
      * List all instance variables of the Repository class here with a useful
      * comment above them describing what that variable represents and how that
@@ -39,7 +36,7 @@ public class Repository {
     public static final File GITLET_DIR = join(CWD, ".gitlet");
     /*The stage area file*/
 
-    /* TODO: fill in the rest of this class. */
+
     public static void initYet() {
         if (!GITLET_DIR.exists()) {
             System.out.println("Not in an initialized Gitlet directory.");
@@ -58,6 +55,8 @@ public class Repository {
         File refs = join(GITLET_DIR, "refs");
         File objects = join(GITLET_DIR, "objects");
         File heads = join(GITLET_DIR, "refs", "heads");
+        File remotes = join(GITLET_DIR, "refs", "remotes");
+
         /*create dir objects and refs
          * create file index and HEAD
          * */
@@ -74,7 +73,7 @@ public class Repository {
         refs.mkdir();
         objects.mkdir();
         heads.mkdir();
-
+        remotes.mkdir();
         /*Create stage index*/
         Index stage = new Index();
         Commit initial = new Commit();
@@ -211,8 +210,8 @@ public class Repository {
     public static void global_log() {
         initYet();
 //        File heads = join(GITLET_DIR, "refs", "heads");
-        File index = join(GITLET_DIR , "index");
-        Index stage = readObject(index , Index.class);
+        File index = join(GITLET_DIR, "index");
+        Index stage = readObject(index, Index.class);
 
 //        Map<String, Boolean> map = new HashMap<>();
 //        for (String branch : Utils.plainFilenamesIn(heads)) {
@@ -237,7 +236,7 @@ public class Repository {
 //                }
 //            }
 //        }
-        for(String s : stage.getCommits()){
+        for (String s : stage.getCommits()) {
             Commit point = readObject(searchObject(s), Commit.class);
             System.out.println("===");
             System.out.println("commit " + s);
@@ -501,13 +500,13 @@ public class Repository {
 //            }
 //        }
         boolean flag = false;
-        File index = join(GITLET_DIR , "index");
-        Index stage = readObject(index , Index.class);
-        for(String s : stage.getCommits()){
+        File index = join(GITLET_DIR, "index");
+        Index stage = readObject(index, Index.class);
+        for (String s : stage.getCommits()) {
             Commit point = readObject(searchObject(s), Commit.class);
             if (point.getMessage().equals(message)) {
-                    flag = true;
-                    System.out.println(s);
+                flag = true;
+                System.out.println(s);
             }
         }
         if (flag == false) {
@@ -603,13 +602,13 @@ public class Repository {
         boolean flag = false;
         for (String s : fileSet) {
             //Split : exist  , Cur: exist
-            if(splitCommit.containBlob(s) && curBranch.containBlob(s) && !givenBranch.containBlob(s)){
-                if(!splitCommit.getFilesha(s).equals(curBranch.getFilesha(s))){
+            if (splitCommit.containBlob(s) && curBranch.containBlob(s) && !givenBranch.containBlob(s)) {
+                if (!splitCommit.getFilesha(s).equals(curBranch.getFilesha(s))) {
                     System.out.println("Encountered a merge conflict.");
                 }
             }
-            if(splitCommit.containBlob(s) && !curBranch.containBlob(s) && givenBranch.containBlob(s)){
-                if(!splitCommit.getFilesha(s).equals(givenBranch.getFilesha(s))){
+            if (splitCommit.containBlob(s) && !curBranch.containBlob(s) && givenBranch.containBlob(s)) {
+                if (!splitCommit.getFilesha(s).equals(givenBranch.getFilesha(s))) {
                     System.out.println("Encountered a merge conflict.");
                     stage.addFile(s, searchObject(givenBranch.getFilesha(s)));
                 }
@@ -688,7 +687,7 @@ public class Repository {
         for (String removal : stage.getRemoveStage()) {
             newcommit.removeFile(removal);
         }
-        //clear current index and save
+        //clear current index and saveFile refs = join(GITLET_DIR, "refs");
         stage.clear();
         Utils.writeObject(index, stage);
         //save commit
@@ -742,6 +741,215 @@ public class Repository {
             checkout2(commitSha, s);
         }
         writeContents(branch, commitSha);
+    }
+
+    /*
+     * Saves the given login information under the given remote name.
+     * Attempts to push or pull from the given remote name will then attempt to use this .gitlet directory.
+     * By writing, e.g., java gitlet.Main add-remote other ../testing/otherdir/.gitlet
+     * you can provide tests of remotes that will work from all locations (on your home machine or within the grading program’s software).
+     * Always use forward slashes in these commands.
+     * Have your program convert all the forward slashes into the path separator character (forward slash on Unix and backslash on Windows).
+     * Java helpfully defines the class variable java.io.File.separator as this character.
+     *
+     * */
+    public static void add_remote(String remoteName, String remoteDir) {
+        File remoteFile = join(GITLET_DIR, "refs", "remotes", remoteName);
+        if (remoteFile.exists()) {
+            System.out.println("A remote with that name already exists.");
+            System.exit(0);
+        }
+        try {
+            remoteFile.createNewFile();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        Utils.writeContents(remoteFile, remoteDir);
+    }
+
+
+    /***
+     * Remove information associated with the given remote name.
+     * The idea here is that if you ever wanted to change a remote that you added,
+     * you would have to first remove it and then re-add it.
+     * @param remoteName
+     */
+    public static void rm_remote(String remoteName) {
+        File remoteFile = join(GITLET_DIR, "refs", "remotes", remoteName);
+        if (!remoteFile.exists()) {
+            System.out.println("A remote with that name does not exist.");
+            System.exit(0);
+        }
+        remoteFile.delete();
+    }
+
+    /***
+     * Attempts to append the current branch’s commits
+     * to the end of the given branch at the given remote. Details:
+     * @param remoteName
+     * @param remoteBranchName
+     */
+    public static void push(String remoteName, String remoteBranchName) {
+
+        File remoteFile = join(GITLET_DIR, "refs", "remotes", remoteName);
+        File remoteGitlet = new File(readContentsAsString(remoteFile));
+        if (!remoteGitlet.exists()) {
+            System.out.println("Remote directory not found.");
+            System.exit(0);
+        }
+        //remember to change the remote Index commitSet in case of losing global commit log
+
+        Commit localHeadCommit = getHeadCommit();
+        //remoteBranch Head
+        File remoteBranch = join(remoteGitlet, "refs", "heads", remoteBranchName);
+        if (!remoteBranch.exists()) {
+            //branch doesn't exist
+            //simply add the branch to the remote Gitlet.
+            try {
+                remoteBranch.createNewFile();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            writeContents(remoteBranch, getHeadCommitSha());
+            while (true) {
+                TreeMap<String, String> blobs = localHeadCommit.getBlobs();
+                for (String s : blobs.keySet()) {
+                    String fileSha = blobs.get(s);
+                    File file = searchObject(fileSha);
+                    saveByteOrStringRemote(Utils.readContentsAsString(file), remoteGitlet);
+                }
+                saveObjectRemote(localHeadCommit, remoteGitlet);
+                if (localHeadCommit.getParent() != null) {
+                    localHeadCommit = Utils.readObject(searchObject(localHeadCommit.getParent()), Commit.class);
+                } else {
+                    return;
+                }
+            }
+        } else {
+            //find if the remote branch’s head is in the history of the current local head
+            //In this case, append the future commits to the remote branch.
+            Commit remoteHeadCommit = Utils.readObject(searchObjectInRemote(Utils.readContentsAsString(remoteBranch), remoteGitlet), Commit.class);
+            if (isInHistory(remoteHeadCommit, localHeadCommit)) {
+                writeContents(remoteBranch, getHeadCommitSha());
+                String remoteHeadSha = Utils.sha1(serialize(remoteHeadCommit));
+                while (true) {
+                    if (Utils.sha1(serialize(localHeadCommit)).equals(remoteHeadSha)) {
+                        break;
+                    }
+                    TreeMap<String, String> blobs = localHeadCommit.getBlobs();
+                    for (String s : blobs.keySet()) {
+                        String fileSha = blobs.get(s);
+                        File file = searchObject(fileSha);
+                        saveByteOrStringRemote(Utils.readContentsAsString(file), remoteGitlet);
+                    }
+                    saveObjectRemote(localHeadCommit, remoteGitlet);
+                    if (localHeadCommit.getParent() != null) {
+                        localHeadCommit = Utils.readObject(searchObject(localHeadCommit.getParent()), Commit.class);
+                    } else {
+                        return;
+                    }
+                }
+            } else {
+                System.out.println("Please pull down remote changes before pushing.");
+                System.exit(0);
+            }
+        }
+
+    }
+
+
+    /***Usage : java gitlet.Main fetch [remote name] [remote branch name]
+     * Brings down commits from the remote Gitlet repository into the local Gitlet repository.
+     *
+     *
+     *
+     *
+     */
+    public static void fetch(String remoteName, String remoteBranchName) {
+        File remoteFile = join(GITLET_DIR, "refs", "remotes", remoteName);
+        File remoteGitlet = new File(readContentsAsString(remoteFile));
+        if (!remoteGitlet.exists()) {
+            System.out.println("Remote directory not found.");
+            System.exit(0);
+        }
+        File remoteBranch = join(remoteGitlet, "refs", "heads", remoteBranchName);
+        if (!remoteBranch.exists()) {
+            System.out.println("That remote does not have that branch.");
+            System.exit(0);
+        }
+        //local branchHead file
+        File branch = join(GITLET_DIR, "refs", "heads", remoteBranchName + "/" + remoteBranchName);
+        Commit remoteHeadCommit = Utils.readObject(searchObjectInRemote(Utils.readContentsAsString(remoteBranch), remoteGitlet), Commit.class);
+
+        if (!branch.exists()) {
+            Commit localCommit = Utils.readObject(searchObject(Utils.readContentsAsString(branch)), Commit.class);
+            writeContents(branch, Utils.sha1(serialize(remoteHeadCommit)));
+
+            String localHeadCommitSha = Utils.sha1(serialize(localCommit));
+            while (true) {
+                if (Utils.sha1(serialize(remoteHeadCommit)).equals(localHeadCommitSha)) {
+                    break;
+                }
+                TreeMap<String, String> blobs = remoteHeadCommit.getBlobs();
+                for (String s : blobs.keySet()) {
+                    String fileSha = blobs.get(s);
+                    File file = searchObjectInRemote(fileSha, remoteGitlet);
+                    saveByteOrString(Utils.readContentsAsString(file));
+                }
+                saveObject(remoteHeadCommit);
+                if (remoteHeadCommit.getParent() != null) {
+                    remoteHeadCommit = Utils.readObject(searchObject(remoteHeadCommit.getParent()), Commit.class);
+                } else {
+                    return;
+                }
+            }
+        } else {
+            try {
+                branch.createNewFile();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            writeContents(branch, Utils.sha1(serialize(remoteHeadCommit)));
+
+            while (true) {
+                TreeMap<String, String> blobs = remoteHeadCommit.getBlobs();
+                for (String s : blobs.keySet()) {
+                    String fileSha = blobs.get(s);
+                    File file = searchObjectInRemote(fileSha, remoteGitlet);
+                    saveByteOrString(Utils.readContentsAsString(file));
+                }
+                saveObject(remoteHeadCommit);
+                if (remoteHeadCommit.getParent() != null) {
+                    remoteHeadCommit = Utils.readObject(searchObjectInRemote(remoteHeadCommit.getParent(), remoteGitlet), Commit.class);
+                } else {
+                    return;
+                }
+            }
+        }
+    }
+
+    /***
+     * Usage : java gitlet.Main pull [remote name] [remote branch name]
+     */
+    public static void pull(String remoteName , String branchName){
+        fetch(remoteName , branchName);
+        merge(remoteName + "/" + branchName);
+    }
+
+    public static boolean isInHistory(Commit remoteHead, Commit localHead) {
+        String remoteHeadSha = Utils.sha1(serialize(remoteHead));
+        boolean flag = false;
+        while (true) {
+            if (localHead.getParent() == null) {
+                break;
+            }
+            if (Utils.sha1(serialize(localHead)).equals(remoteHeadSha)) {
+                flag = true;
+                break;
+            }
+            localHead = Utils.readObject(searchObject(localHead.getParent()), Commit.class);
+        }
+        return flag;
     }
 
     /***
@@ -829,6 +1037,38 @@ public class Repository {
         return file;
     }
 
+    public static File searchWithPreInRemote(String sha, File remote) {
+        String shaDir = sha.substring(0, 2);
+        String prefix = sha.substring(3, sha.length());
+
+        File dir = join(remote, "objects", shaDir);
+        if (!dir.exists()) {
+            System.out.println("No commit with that id exists.");
+            System.exit(0);
+        }
+        List<String> list = Utils.plainFilenamesIn(dir);
+        String shafile = "";
+        for (String s : list) {
+            if (s.startsWith(prefix)) {
+                shafile = s;
+                break;
+            }
+        }
+        File file = join(remote, "objects", shaDir, shafile);
+        return file;
+    }
+
+    public static File searchObjectInRemote(String sha, File remoteGitlet) {
+        String shaDir = sha.substring(0, 2);
+        String shaFile = sha.substring(3, sha.length());
+        File file = join(remoteGitlet, "objects", shaDir, shaFile);
+        if (!file.exists()) {
+            System.out.println("File does not exist.");
+            System.exit(0);
+        }
+        return file;
+    }
+
     public static File searchObject(String sha) {
         String shaDir = sha.substring(0, 2);
         String shaFile = sha.substring(3, sha.length());
@@ -842,7 +1082,7 @@ public class Repository {
 
     /***
      * save object to objects directory
-     *
+     * save file
      * @param object
      * @return sha-1 of object
      */
@@ -863,6 +1103,53 @@ public class Repository {
         }
 
         Utils.writeContents(file, object);
+        return sha1;
+    }
+
+    /***
+     * save String <- object
+     * (ReadContentAsString from local  , and save it to remoteGitlet)
+     * @param object
+     * @param remoteGitlet
+     * @return
+     */
+    public static String saveByteOrStringRemote(Object object, File remoteGitlet) {
+        String sha1 = sha1(object);
+        String shaDir = sha1.substring(0, 2);
+        String shaFile = sha1.substring(3, sha1.length());
+
+        File dir = join(remoteGitlet, "objects", shaDir);
+        if (!dir.exists()) {
+            dir.mkdir();
+        }
+        File file = join(dir, shaFile);
+        try {
+            file.createNewFile();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        Utils.writeContents(file, object);
+        return sha1;
+    }
+
+    public static String saveObjectRemote(Serializable object, File remoteGitlet) {
+        String sha1 = sha1(Utils.serialize(object));
+        String shaDir = sha1.substring(0, 2);
+        String shaFile = sha1.substring(3, sha1.length());
+
+        File dir = join(remoteGitlet, "objects", shaDir);
+        if (!dir.exists()) {
+            dir.mkdir();
+        }
+        File file = join(dir, shaFile);
+        try {
+            file.createNewFile();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        Utils.writeObject(file, object);
         return sha1;
     }
 

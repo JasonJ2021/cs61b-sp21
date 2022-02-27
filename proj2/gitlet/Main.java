@@ -1,11 +1,10 @@
 package gitlet;
 
-import java.util.ArrayList;
 
 /**
  * Driver class for Gitlet, a subset of the Git version-control system.
  *
- * @author TODO
+ * @author JasonJ2021
  */
 public class Main {
 
@@ -14,49 +13,47 @@ public class Main {
      * <COMMAND> <OPERAND1> <OPERAND2> ...
      */
     public static void main(String[] args) {
-        // TODO: what if args is empty?
-        if(args.length == 0){
+        //
+        if (args.length == 0) {
             System.out.println("Please enter a command.");
             System.exit(0);
         }
         String firstArg = args[0];
         switch (firstArg) {
             case "init":
-                // TODO: handle the `init` command
                 Repository.init();
                 break;
             case "add":
-                // TODO: handle the `add [filename]` command
                 String filename = args[1];
                 Repository.add(filename);
                 break;
-            // TODO: FILL THE REST IN
+            //
             case "commit":
-                // TODO: java gitlet.Main commit [message]
+
                 String message = args[1];
                 Repository.commit(message);
                 break;
             case "rm":
-                // TODO: java gitlet.Main rm [file name]
+
                 Repository.rm(args[1]);
                 break;
             case "log":
-                // TODO: java gitlet.Main log
+
                 Repository.log();
                 break;
             case "checkout":
-                // TODO: checkout With branch hasn't finished yet!
+
                 if (args.length == 3) {
                     //java gitlet.Main checkout -- [file name]
                     Repository.checkout1(args[2]);
                 } else if (args.length == 4) {
                     //java gitlet.Main checkout [commit id] -- [file name]
-                    if(!args[2].equals("--")){
+                    if (!args[2].equals("--")) {
                         System.out.println("Incorrect operands.");
                         System.exit(0);
                     }
                     Repository.checkout2(args[1], args[3]);
-                }else{
+                } else {
                     //java gitlet.Main checkout [branch name]
                     Repository.checkout3(args[1]);
                 }
@@ -65,7 +62,7 @@ public class Main {
                 Repository.branch(args[1]);
                 break;
             case "status":
-                // TODO: java gitlet.Main status
+
                 Repository.status();
                 break;
             case "global-log":
@@ -84,6 +81,26 @@ public class Main {
             case "reset":
                 //java gitlet.Main reset [commit id]
                 Repository.reset(args[1]);
+                break;
+            case "add-remote":
+                //java gitlet.Main add-remote [remote name] [name of remote directory]/.gitlet
+                Repository.add_remote(args[1], args[2]);
+                break;
+            case "rm-remote":
+                //java gitlet.Main rm-remote [remote name]
+                Repository.rm_remote(args[1]);
+                break;
+            case "push":
+                //java gitlet.Main push [remote name] [remote branch name]
+                Repository.push(args[1] , args[2]);
+                break;
+            case "fetch":
+                //java gitlet.Main fetch [remote name] [remote branch name]
+                Repository.fetch(args[1] , args[2]);
+                break;
+            case "pull":
+                //java gitlet.Main fetch [remote name] [remote branch name]
+                Repository.pull(args[1] , args[2]);
                 break;
             default:
                 System.out.println("No command with that name exists.");
