@@ -965,6 +965,9 @@ public class Repository {
         Commit point = curBranch;
         while (true) {
             map.put(sha1(serialize(point)), Boolean.TRUE);
+            if(point.getOtherParent() != null){
+                map.put(point.getOtherParent() , Boolean.TRUE);
+            }
             if (point.getParent() == null) {
                 break;
             } else {
