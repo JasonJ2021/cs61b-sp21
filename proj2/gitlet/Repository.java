@@ -878,10 +878,12 @@ public class Repository {
             System.exit(0);
         }
         //local branchHead file
-        File branch = join(GITLET_DIR, "refs", "heads", remoteBranchName + "/" + remoteBranchName);
+        String branchName = remoteName + "-" + remoteBranchName;
+        File branch = join(GITLET_DIR, "refs","heads", branchName);
+
         Commit remoteHeadCommit = Utils.readObject(searchObjectInRemote(Utils.readContentsAsString(remoteBranch), remoteGitlet), Commit.class);
 
-        if (!branch.exists()) {
+        if (branch.exists()) {
             Commit localCommit = Utils.readObject(searchObject(Utils.readContentsAsString(branch)), Commit.class);
             writeContents(branch, Utils.sha1(serialize(remoteHeadCommit)));
 
@@ -933,7 +935,7 @@ public class Repository {
      */
     public static void pull(String remoteName , String branchName){
         fetch(remoteName , branchName);
-        merge(remoteName + "/" + branchName);
+        merge(remoteName + "-" + branchName);
     }
 
     public static boolean isInHistory(Commit remoteHead, Commit localHead) {
